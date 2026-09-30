@@ -141,13 +141,28 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json',
 };
 
-function serveStatic(res, pathname) {
+// Asset URLs in index.html get a version stamp (latest mtime in public/) so a
+// deploy always busts browser and Cloudflare caches.
+function assetVersion() {
+  let v = 0;
+  for (const f of fs.readdirSync(PUBLIC_DIR)) v = Math.max(v, fs.statSync(path.join(PUBLIC_DIR, f)).mtimeMs);
+  return Math.floor(v).toString(36);
+}
+
+function serveStatic(req, res, pathname) {
   const file = path.normalize(path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname));
   if (!file.startsWith(PUBLIC_DIR + path.sep)) return send(res, 403, { error: 'Forbidden' });
   fs.readFile(file, (err, data) => {
     if (err) return send(res, 404, { error: 'Not found' });
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
-    res.end(data);
+    if (file.endsWith('index.html')) {
+      const v = assetVersion();
+      data = data.toString().replace(/(href|src)="(style\.css|app\.js)"/g, `$1="$2?v=${v}"`);
+    }
+    res.writeHead(200, {
+      'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream',
+      'Cache-Control': 'no-cache',
+    });
+    res.end(req.method === 'HEAD' ? undefined : data);
   });
 }
 
@@ -156,8 +171,8 @@ http
     const url = new URL(req.url, 'http://localhost');
     try {
       if (url.pathname.startsWith('/api/')) return await api(req, res, url);
-      if (req.method !== 'GET') return send(res, 405, { error: 'Method not allowed' });
-      serveStatic(res, decodeURIComponent(url.pathname));
+      if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'Method not allowed' });
+      serveStatic(req, res, decodeURIComponent(url.pathname));
     } catch (e) {
       send(res, 400, { error: e.message });
     }
