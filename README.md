@@ -51,7 +51,7 @@ Update: `cd ~/calorie-track && git pull && sudo systemctl restart calorie-track`
 | Method | Path | |
 |---|---|---|
 | GET | `/api/entries?date=YYYY-MM-DD` | entries for a day |
-| POST | `/api/entries` | `{name, date, calories, protein, carbs, fat}` |
+| POST | `/api/entries` | `{name, date, eatenAt?, calories, protein, carbs, fat}`, eatenAt defaults to now |
 | PUT / DELETE | `/api/entries/:id` | edit / remove |
 | GET / PUT | `/api/goals` | daily targets |
 | GET | `/api/foods` | recently used foods |

@@ -61,9 +61,12 @@ function validateEntry(b) {
   const name = String(b.name || '').trim().slice(0, 100);
   if (!name) return { error: 'Name is required' };
   if (!isDate(b.date)) return { error: 'Invalid date' };
+  // When it was eaten; defaults to now if the client doesn't say.
+  const eatenAt = b.eatenAt ? new Date(b.eatenAt) : new Date();
+  if (Number.isNaN(eatenAt.getTime())) return { error: 'Invalid time' };
   return {
     entry: {
-      name, date: b.date,
+      name, date: b.date, eatenAt: eatenAt.toISOString(),
       calories: num(b.calories), protein: num(b.protein), carbs: num(b.carbs), fat: num(b.fat),
     },
   };
@@ -90,7 +93,9 @@ async function api(req, res, url) {
     if (req.method === 'GET') {
       const date = url.searchParams.get('date');
       if (!isDate(date)) return send(res, 400, { error: 'Invalid date' });
-      return send(res, 200, db.entries.filter((e) => e.date === date));
+      const eaten = (e) => e.eatenAt || e.createdAt; // older entries predate eatenAt
+      const list = db.entries.filter((e) => e.date === date).sort((a, b) => eaten(a).localeCompare(eaten(b)));
+      return send(res, 200, list);
     }
     if (req.method === 'POST') {
       const { entry, error } = validateEntry(await readBody(req));

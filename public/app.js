@@ -73,9 +73,11 @@ function render() {
       const li = document.createElement('li');
       li.innerHTML = `
         <button class="item">
-          <div><div class="item-name"></div><div class="item-macros"></div></div>
+          <span class="item-time"></span>
+          <div class="item-main"><div class="item-name"></div><div class="item-macros"></div></div>
           <span class="item-kcal"></span>
         </button>`;
+      li.querySelector('.item-time').textContent = timeLabel(eatenDate(e));
       li.querySelector('.item-name').textContent = e.name;
       li.querySelector('.item-macros').textContent = `P ${fmt(e.protein)}g · C ${fmt(e.carbs)}g · F ${fmt(e.fat)}g`;
       li.querySelector('.item-kcal').innerHTML = `${fmt(e.calories)} <small>kcal</small>`;
@@ -83,6 +85,18 @@ function render() {
       return li;
     }),
   );
+}
+
+const p2 = (n) => String(n).padStart(2, '0');
+const eatenDate = (e) => new Date(e.eatenAt || e.createdAt);
+const timeLabel = (d) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+const hhmm = (d) => `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+
+// Combine a YYYY-MM-DD day with an HH:MM time, in local time.
+function toLocalDateTime(iso, time) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const [hh, mm] = (time || '12:00').split(':').map(Number);
+  return new Date(y, m - 1, d, hh, mm);
 }
 
 // Parse a typed number, allowing a comma as the decimal separator. Empty means 0.
@@ -108,6 +122,10 @@ function openFood(entry = null) {
   if (entry) {
     form.food.value = entry.name;
     for (const k of KEYS) form[k].value = entry[k] || '';
+    form.time.value = hhmm(eatenDate(entry));
+  } else {
+    // Adding to today: now. Adding to a past day: midday, adjustable.
+    form.time.value = state.date === state.today ? hhmm(new Date()) : '12:00';
   }
   foodDlg.showModal();
   if (!entry) form.food.focus();
@@ -124,6 +142,7 @@ form.addEventListener('submit', async (ev) => {
   const err = $('#food-error');
   const body = { name: form.food.value.trim(), date: editing ? editing.date : state.date };
   for (const k of KEYS) body[k] = parseNum(form[k].value);
+  body.eatenAt = toLocalDateTime(body.date, form.time.value).toISOString();
   if (!body.name) { err.textContent = 'Give it a name.'; err.hidden = false; return form.food.focus(); }
   const bad = KEYS.find((k) => Number.isNaN(body[k]));
   if (bad) { err.textContent = 'Numbers only, please.'; err.hidden = false; return form[bad].focus(); }
