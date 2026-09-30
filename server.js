@@ -10,7 +10,6 @@ const HOST = process.env.HOST || '127.0.0.1';
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data', 'db.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
-const MEALS = ['breakfast', 'lunch', 'dinner', 'snacks'];
 const DEFAULT_GOALS = { calories: 2200, protein: 150, carbs: 250, fat: 70 };
 
 // ---------- storage ----------
@@ -62,10 +61,9 @@ function validateEntry(b) {
   const name = String(b.name || '').trim().slice(0, 100);
   if (!name) return { error: 'Name is required' };
   if (!isDate(b.date)) return { error: 'Invalid date' };
-  const meal = MEALS.includes(b.meal) ? b.meal : 'snacks';
   return {
     entry: {
-      name, meal, date: b.date,
+      name, date: b.date,
       calories: num(b.calories), protein: num(b.protein), carbs: num(b.carbs), fat: num(b.fat),
     },
   };

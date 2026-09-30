@@ -1,8 +1,8 @@
 # Calorie Track
 
-A small self-hosted calorie and macro tracker. You log what you eat against a
-meal (breakfast, lunch, dinner or snacks) with calories, protein, carbs and
-fat. It shows per-meal subtotals and a daily total measured against your goals.
+A small self-hosted calorie and macro tracker. You log what you eat with
+calories, protein, carbs and fat, and it adds them up into a daily total
+measured against your goals.
 Each day starts empty, and previous days stay browsable with the ‹ › arrows.
 
 - Zero dependencies: plain Node (>= 18) and one static page
@@ -51,7 +51,7 @@ Update: `cd ~/calorie-track && git pull && sudo systemctl restart calorie-track`
 | Method | Path | |
 |---|---|---|
 | GET | `/api/entries?date=YYYY-MM-DD` | entries for a day |
-| POST | `/api/entries` | `{name, meal, date, calories, protein, carbs, fat}` |
+| POST | `/api/entries` | `{name, date, calories, protein, carbs, fat}` |
 | PUT / DELETE | `/api/entries/:id` | edit / remove |
 | GET / PUT | `/api/goals` | daily targets |
 | GET | `/api/foods` | recently used foods |

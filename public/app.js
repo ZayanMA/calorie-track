@@ -1,10 +1,4 @@
-const MEALS = [
-  ['breakfast', 'Breakfast'],
-  ['lunch', 'Lunch'],
-  ['dinner', 'Dinner'],
-  ['snacks', 'Snacks'],
-];
-const RING_LEN = 2 * Math.PI * 52;
+const KEYS = ['calories', 'protein', 'carbs', 'fat'];
 
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => (Math.round(n * 10) / 10).toLocaleString();
@@ -40,19 +34,14 @@ async function loadFoods() {
   $('#foods').replaceChildren(...state.foods.map((f) => new Option(`${fmt(f.calories)} kcal`, f.name)));
 }
 
-function sum(list) {
-  return list.reduce(
-    (t, e) => ({ calories: t.calories + e.calories, protein: t.protein + e.protein, carbs: t.carbs + e.carbs, fat: t.fat + e.fat }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 },
-  );
-}
-
 function dayLabel(iso) {
   if (iso === state.today) return 'Today';
   if (iso === shiftDate(state.today, -1)) return 'Yesterday';
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
+
+const pct = (v, goal) => `${goal ? Math.min(100, (v / goal) * 100) : 0}%`;
 
 function render() {
   const isToday = state.date === state.today;
@@ -61,116 +50,136 @@ function render() {
   $('#next').disabled = isToday;
 
   const g = state.goals;
-  const t = sum(state.entries);
+  const t = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  for (const e of state.entries) for (const k of KEYS) t[k] += e[k];
 
-  // Calorie ring
-  const ratio = g.calories ? t.calories / g.calories : 0;
-  const ring = $('#ring');
-  ring.style.strokeDasharray = RING_LEN;
-  ring.style.strokeDashoffset = RING_LEN * (1 - Math.min(ratio, 1));
-  ring.classList.toggle('over', ratio > 1);
   $('#cal-total').textContent = fmt(t.calories);
   const left = g.calories - t.calories;
-  $('#cal-sub').textContent = g.calories
-    ? (left >= 0 ? `${fmt(left)} left of ${fmt(g.calories)}` : `${fmt(-left)} over ${fmt(g.calories)}`)
-    : 'kcal';
+  $('#cal-sub').textContent = !g.calories ? 'kcal'
+    : left >= 0 ? `/ ${fmt(g.calories)} kcal · ${fmt(left)} left`
+    : `/ ${fmt(g.calories)} kcal · ${fmt(-left)} over`;
+  $('#cal-bar').style.width = pct(t.calories, g.calories);
+  $('#cal-bar').classList.toggle('over', g.calories && t.calories > g.calories);
 
-  // Macro bars
   for (const el of document.querySelectorAll('.macro')) {
     const k = el.dataset.key;
-    el.querySelector('.macro-val').textContent = g[k] ? `${fmt(t[k])} / ${fmt(g[k])} g` : `${fmt(t[k])} g`;
-    el.querySelector('i').style.width = `${g[k] ? Math.min(100, (t[k] / g[k]) * 100) : 0}%`;
+    el.querySelector('.val').innerHTML = `${fmt(t[k])}g${g[k] ? ` <small>/ ${fmt(g[k])}g</small>` : ''}`;
+    el.querySelector('i').style.width = pct(t[k], g[k]);
   }
 
-  // Meal sections
-  $('#meals').replaceChildren(
-    ...MEALS.map(([key, label]) => {
-      const items = state.entries.filter((e) => e.meal === key);
-      const s = sum(items);
-      const card = document.createElement('section');
-      card.className = 'card';
-      card.innerHTML = `
-        <div class="meal-head"><h2></h2><span class="meal-kcal"></span></div>
-        <div class="meal-macros"></div>
-        <ul class="items"></ul>`;
-      card.querySelector('h2').textContent = label;
-      card.querySelector('.meal-kcal').textContent = `${fmt(s.calories)} kcal`;
-      card.querySelector('.meal-macros').textContent = `P ${fmt(s.protein)}g · C ${fmt(s.carbs)}g · F ${fmt(s.fat)}g`;
-      const ul = card.querySelector('.items');
-      if (!items.length) {
-        const li = document.createElement('li');
-        li.className = 'empty';
-        li.textContent = 'Nothing logged';
-        ul.append(li);
-      }
-      for (const e of items) {
-        const li = document.createElement('li');
-        li.className = 'item';
-        li.innerHTML = `
+  $('#empty').hidden = state.entries.length > 0;
+  $('#items').replaceChildren(
+    ...state.entries.map((e) => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <button class="item">
           <div><div class="item-name"></div><div class="item-macros"></div></div>
           <span class="item-kcal"></span>
-          <button class="del" aria-label="Remove">×</button>`;
-        li.querySelector('.item-name').textContent = e.name;
-        li.querySelector('.item-macros').textContent = `P ${fmt(e.protein)}g · C ${fmt(e.carbs)}g · F ${fmt(e.fat)}g`;
-        li.querySelector('.item-kcal').textContent = `${fmt(e.calories)} kcal`;
-        li.querySelector('.del').onclick = async () => {
-          if (!confirm(`Remove "${e.name}"?`)) return;
-          await api(`/entries/${e.id}`, { method: 'DELETE' });
-          loadDay();
-        };
-        ul.append(li);
-      }
-      return card;
+        </button>`;
+      li.querySelector('.item-name').textContent = e.name;
+      li.querySelector('.item-macros').textContent = `P ${fmt(e.protein)}g · C ${fmt(e.carbs)}g · F ${fmt(e.fat)}g`;
+      li.querySelector('.item-kcal').innerHTML = `${fmt(e.calories)} <small>kcal</small>`;
+      li.querySelector('.item').onclick = () => openFood(e);
+      return li;
     }),
   );
 }
 
-// Guess the meal from the time of day so the default is usually right.
-function defaultMeal() {
-  const h = new Date().getHours();
-  return h < 11 ? 'breakfast' : h < 15 ? 'lunch' : h < 21 ? 'dinner' : 'snacks';
+// Parse a typed number, allowing a comma as the decimal separator. Empty means 0.
+function parseNum(v) {
+  const s = String(v).trim().replace(',', '.');
+  if (!s) return 0;
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? n : NaN;
 }
 
-const form = $('#add-form');
+// ---------- add / edit dialog ----------
+const foodDlg = $('#food-dialog');
+const form = $('#food-form');
+let editing = null; // entry being edited, or null when adding
+
+function openFood(entry = null) {
+  editing = entry;
+  form.reset();
+  $('#food-error').hidden = true;
+  $('#food-title').textContent = entry ? 'Edit food' : 'Add food';
+  $('#food-submit').textContent = entry ? 'Save' : 'Add';
+  $('#delete-food').hidden = !entry;
+  if (entry) {
+    form.name.value = entry.name;
+    for (const k of KEYS) form[k].value = entry[k] || '';
+  }
+  foodDlg.showModal();
+  if (!entry) form.name.focus();
+}
 
 // Picking a previously logged food fills in its macros.
 form.name.addEventListener('input', () => {
   const f = state.foods.find((x) => x.name.toLowerCase() === form.name.value.trim().toLowerCase());
-  if (f) for (const k of ['calories', 'protein', 'carbs', 'fat']) form[k].value = f[k];
+  if (f) for (const k of KEYS) form[k].value = f[k] || '';
 });
 
 form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
-  const data = Object.fromEntries(new FormData(form));
+  const err = $('#food-error');
+  const body = { name: form.name.value.trim(), date: editing ? editing.date : state.date };
+  for (const k of KEYS) body[k] = parseNum(form[k].value);
+  if (!body.name) { err.textContent = 'Give it a name.'; err.hidden = false; return form.name.focus(); }
+  const bad = KEYS.find((k) => Number.isNaN(body[k]));
+  if (bad) { err.textContent = 'Numbers only, please.'; err.hidden = false; return form[bad].focus(); }
   try {
-    await api('/entries', { method: 'POST', body: { ...data, date: state.date } });
+    if (editing) await api(`/entries/${editing.id}`, { method: 'PUT', body });
+    else await api('/entries', { method: 'POST', body });
   } catch (e) {
-    return alert(e.message);
+    err.textContent = e.message; err.hidden = false; return;
   }
-  const meal = form.meal.value;
-  form.reset();
-  form.meal.value = meal;
-  form.name.focus();
+  foodDlg.close();
   loadDay();
   loadFoods();
 });
 
+$('#delete-food').onclick = async () => {
+  if (!editing) return;
+  await api(`/entries/${editing.id}`, { method: 'DELETE' });
+  foodDlg.close();
+  loadDay();
+};
+
+$('#open-add').onclick = () => openFood();
+
+// ---------- goals dialog ----------
+const goalsDlg = $('#goals-dialog');
+const gform = $('#goals-form');
+$('#open-goals').onclick = () => {
+  for (const k of KEYS) gform[k].value = state.goals[k] || '';
+  goalsDlg.showModal();
+};
+gform.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const body = {};
+  for (const k of KEYS) {
+    const n = parseNum(gform[k].value);
+    if (!Number.isNaN(n)) body[k] = n;
+  }
+  state.goals = await api('/goals', { method: 'PUT', body });
+  goalsDlg.close();
+  render();
+});
+
+// Cancel buttons, and tapping the backdrop, close dialogs.
+for (const dlg of [foodDlg, goalsDlg]) {
+  dlg.querySelector('[data-close]').onclick = () => dlg.close();
+  dlg.addEventListener('click', (e) => {
+    if (e.target !== dlg) return;
+    const r = dlg.getBoundingClientRect(); // clicks on the dialog's own padding also target it
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+  });
+}
+
+// ---------- day navigation ----------
 $('#prev').onclick = () => { state.date = shiftDate(state.date, -1); loadDay(); };
 $('#next').onclick = () => { if (state.date < state.today) { state.date = shiftDate(state.date, 1); loadDay(); } };
 $('#go-today').onclick = () => { state.date = state.today; loadDay(); };
-
-// Goals dialog
-const dlg = $('#goals-dialog');
-const gform = $('#goals-form');
-$('#open-goals').onclick = () => {
-  for (const k of ['calories', 'protein', 'carbs', 'fat']) gform[k].value = state.goals[k] ?? '';
-  dlg.showModal();
-};
-dlg.addEventListener('close', async () => {
-  if (dlg.returnValue !== 'save') return;
-  state.goals = await api('/goals', { method: 'PUT', body: Object.fromEntries(new FormData(gform)) });
-  render();
-});
 
 // Roll over to the new day at midnight (and when the tab/app is reopened).
 function checkRollover() {
@@ -185,7 +194,6 @@ setInterval(checkRollover, 60_000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkRollover(); });
 
 (async () => {
-  form.meal.value = defaultMeal();
   state.goals = await api('/goals');
   await Promise.all([loadDay(), loadFoods()]);
 })();

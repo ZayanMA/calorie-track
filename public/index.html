@@ -13,86 +13,83 @@
 <body>
   <main class="wrap">
     <header class="top">
-      <button class="icon-btn" id="prev" aria-label="Previous day">‹</button>
       <div class="day">
+        <button class="nav" id="prev" aria-label="Previous day">
+          <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
         <h1 id="day-label">Today</h1>
-        <button class="link" id="go-today" hidden>Back to today</button>
+        <button class="nav" id="next" aria-label="Next day">
+          <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
       </div>
-      <button class="icon-btn" id="next" aria-label="Next day">›</button>
+      <button class="add-btn" id="open-add" aria-label="Add food">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </header>
 
-    <section class="card summary">
-      <div class="ring-wrap">
-        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
-          <circle class="ring-bg" cx="60" cy="60" r="52"/>
-          <circle class="ring-fg" id="ring" cx="60" cy="60" r="52"/>
-        </svg>
-        <div class="ring-text">
-          <strong id="cal-total">0</strong>
-          <span id="cal-sub">of 2200 kcal</span>
-        </div>
+    <section class="summary">
+      <div class="kcal">
+        <strong id="cal-total">0</strong>
+        <span id="cal-sub">kcal</span>
       </div>
+      <div class="bar big"><i id="cal-bar"></i></div>
       <div class="macros">
-        <div class="macro" data-key="protein">
-          <div class="macro-head"><span>Protein</span><span class="macro-val"></span></div>
-          <div class="bar"><i></i></div>
-        </div>
-        <div class="macro" data-key="carbs">
-          <div class="macro-head"><span>Carbs</span><span class="macro-val"></span></div>
-          <div class="bar"><i></i></div>
-        </div>
-        <div class="macro" data-key="fat">
-          <div class="macro-head"><span>Fat</span><span class="macro-val"></span></div>
-          <div class="bar"><i></i></div>
-        </div>
-        <button class="link goals-btn" id="open-goals">Edit goals</button>
+        <div class="macro" data-key="protein"><span class="label">Protein</span><span class="val"></span><div class="bar"><i></i></div></div>
+        <div class="macro" data-key="carbs"><span class="label">Carbs</span><span class="val"></span><div class="bar"><i></i></div></div>
+        <div class="macro" data-key="fat"><span class="label">Fat</span><span class="val"></span><div class="bar"><i></i></div></div>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Add food</h2>
-      <form id="add-form" autocomplete="off">
-        <div class="row">
-          <label class="grow">
-            <span>Item</span>
-            <input name="name" list="foods" placeholder="e.g. Chicken wrap" required maxlength="100">
-          </label>
-          <label>
-            <span>Meal</span>
-            <select name="meal">
-              <option value="breakfast">Breakfast</option>
-              <option value="lunch">Lunch</option>
-              <option value="dinner">Dinner</option>
-              <option value="snacks">Snacks</option>
-            </select>
-          </label>
-        </div>
-        <div class="row nums">
-          <label><span>Calories</span><input name="calories" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
-          <label><span>Protein g</span><input name="protein" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
-          <label><span>Carbs g</span><input name="carbs" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
-          <label><span>Fat g</span><input name="fat" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
-        </div>
-        <button class="primary" type="submit">Add</button>
-      </form>
-      <datalist id="foods"></datalist>
+    <section class="list">
+      <ul id="items"></ul>
+      <p class="empty" id="empty">
+        Nothing logged yet.<br>Tap <b>+</b> to add food.
+      </p>
     </section>
 
-    <div id="meals"></div>
+    <footer class="foot">
+      <button class="link" id="go-today" hidden>Back to today</button>
+      <button class="link" id="open-goals">Daily goals</button>
+    </footer>
   </main>
 
-  <dialog id="goals-dialog">
-    <form method="dialog" id="goals-form">
-      <h2>Daily goals</h2>
-      <div class="row nums">
-        <label><span>Calories</span><input name="calories" type="number" min="0" step="any"></label>
-        <label><span>Protein g</span><input name="protein" type="number" min="0" step="any"></label>
-        <label><span>Carbs g</span><input name="carbs" type="number" min="0" step="any"></label>
-        <label><span>Fat g</span><input name="fat" type="number" min="0" step="any"></label>
+  <dialog id="food-dialog">
+    <form id="food-form" autocomplete="off" novalidate>
+      <h2 id="food-title">Add food</h2>
+      <label class="field">
+        <span>Name</span>
+        <input name="name" list="foods" placeholder="e.g. Chicken wrap" maxlength="100" enterkeyhint="next">
+      </label>
+      <div class="grid">
+        <label class="field"><span>Calories</span><input name="calories" inputmode="decimal" placeholder="0"></label>
+        <label class="field"><span>Protein (g)</span><input name="protein" inputmode="decimal" placeholder="0"></label>
+        <label class="field"><span>Carbs (g)</span><input name="carbs" inputmode="decimal" placeholder="0"></label>
+        <label class="field"><span>Fat (g)</span><input name="fat" inputmode="decimal" placeholder="0"></label>
       </div>
-      <div class="dialog-actions">
-        <button value="cancel" formnovalidate>Cancel</button>
-        <button class="primary" value="save">Save</button>
+      <p class="error" id="food-error" hidden></p>
+      <div class="actions">
+        <button type="button" class="danger" id="delete-food" hidden>Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit" class="primary" id="food-submit">Add</button>
+      </div>
+    </form>
+    <datalist id="foods"></datalist>
+  </dialog>
+
+  <dialog id="goals-dialog">
+    <form id="goals-form" autocomplete="off" novalidate>
+      <h2>Daily goals</h2>
+      <div class="grid">
+        <label class="field"><span>Calories</span><input name="calories" inputmode="decimal"></label>
+        <label class="field"><span>Protein (g)</span><input name="protein" inputmode="decimal"></label>
+        <label class="field"><span>Carbs (g)</span><input name="carbs" inputmode="decimal"></label>
+        <label class="field"><span>Fat (g)</span><input name="fat" inputmode="decimal"></label>
+      </div>
+      <div class="actions">
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit" class="primary">Save</button>
       </div>
     </form>
   </dialog>
