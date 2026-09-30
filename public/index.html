@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+  <title>Calories</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <button class="icon-btn" id="prev" aria-label="Previous day">‹</button>
+      <div class="day">
+        <h1 id="day-label">Today</h1>
+        <button class="link" id="go-today" hidden>Back to today</button>
+      </div>
+      <button class="icon-btn" id="next" aria-label="Next day">›</button>
+    </header>
+
+    <section class="card summary">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-bg" cx="60" cy="60" r="52"/>
+          <circle class="ring-fg" id="ring" cx="60" cy="60" r="52"/>
+        </svg>
+        <div class="ring-text">
+          <strong id="cal-total">0</strong>
+          <span id="cal-sub">of 2200 kcal</span>
+        </div>
+      </div>
+      <div class="macros">
+        <div class="macro" data-key="protein">
+          <div class="macro-head"><span>Protein</span><span class="macro-val"></span></div>
+          <div class="bar"><i></i></div>
+        </div>
+        <div class="macro" data-key="carbs">
+          <div class="macro-head"><span>Carbs</span><span class="macro-val"></span></div>
+          <div class="bar"><i></i></div>
+        </div>
+        <div class="macro" data-key="fat">
+          <div class="macro-head"><span>Fat</span><span class="macro-val"></span></div>
+          <div class="bar"><i></i></div>
+        </div>
+        <button class="link goals-btn" id="open-goals">Edit goals</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Add food</h2>
+      <form id="add-form" autocomplete="off">
+        <div class="row">
+          <label class="grow">
+            <span>Item</span>
+            <input name="name" list="foods" placeholder="e.g. Chicken wrap" required maxlength="100">
+          </label>
+          <label>
+            <span>Meal</span>
+            <select name="meal">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snacks">Snacks</option>
+            </select>
+          </label>
+        </div>
+        <div class="row nums">
+          <label><span>Calories</span><input name="calories" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
+          <label><span>Protein g</span><input name="protein" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
+          <label><span>Carbs g</span><input name="carbs" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
+          <label><span>Fat g</span><input name="fat" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
+        </div>
+        <button class="primary" type="submit">Add</button>
+      </form>
+      <datalist id="foods"></datalist>
+    </section>
+
+    <div id="meals"></div>
+  </main>
+
+  <dialog id="goals-dialog">
+    <form method="dialog" id="goals-form">
+      <h2>Daily goals</h2>
+      <div class="row nums">
+        <label><span>Calories</span><input name="calories" type="number" min="0" step="any"></label>
+        <label><span>Protein g</span><input name="protein" type="number" min="0" step="any"></label>
+        <label><span>Carbs g</span><input name="carbs" type="number" min="0" step="any"></label>
+        <label><span>Fat g</span><input name="fat" type="number" min="0" step="any"></label>
+      </div>
+      <div class="dialog-actions">
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button class="primary" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

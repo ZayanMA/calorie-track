@@ -1,0 +1,15 @@
+[Unit]
+Description=Calorie tracker web app
+After=network.target
+
+[Service]
+Type=simple
+User=zayan
+WorkingDirectory=/home/zayan/calorie-track
+Environment=PORT=4100
+Environment=HOST=127.0.0.1
+ExecStart=/usr/bin/env node server.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
