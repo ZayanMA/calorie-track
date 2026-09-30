@@ -106,25 +106,25 @@ function openFood(entry = null) {
   $('#food-submit').textContent = entry ? 'Save' : 'Add';
   $('#delete-food').hidden = !entry;
   if (entry) {
-    form.name.value = entry.name;
+    form.food.value = entry.name;
     for (const k of KEYS) form[k].value = entry[k] || '';
   }
   foodDlg.showModal();
-  if (!entry) form.name.focus();
+  if (!entry) form.food.focus();
 }
 
 // Picking a previously logged food fills in its macros.
-form.name.addEventListener('input', () => {
-  const f = state.foods.find((x) => x.name.toLowerCase() === form.name.value.trim().toLowerCase());
+form.food.addEventListener('input', () => {
+  const f = state.foods.find((x) => x.name.toLowerCase() === form.food.value.trim().toLowerCase());
   if (f) for (const k of KEYS) form[k].value = f[k] || '';
 });
 
 form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const err = $('#food-error');
-  const body = { name: form.name.value.trim(), date: editing ? editing.date : state.date };
+  const body = { name: form.food.value.trim(), date: editing ? editing.date : state.date };
   for (const k of KEYS) body[k] = parseNum(form[k].value);
-  if (!body.name) { err.textContent = 'Give it a name.'; err.hidden = false; return form.name.focus(); }
+  if (!body.name) { err.textContent = 'Give it a name.'; err.hidden = false; return form.food.focus(); }
   const bad = KEYS.find((k) => Number.isNaN(body[k]));
   if (bad) { err.textContent = 'Numbers only, please.'; err.hidden = false; return form[bad].focus(); }
   try {
@@ -197,3 +197,40 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
   state.goals = await api('/goals');
   await Promise.all([loadDay(), loadFoods()]);
 })();
+
+// ---------- install as app ----------
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+const installBox = $('#install');
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+let dismissed = false;
+try { dismissed = localStorage.getItem('installDismissed') === '1'; } catch {}
+let deferredPrompt = null;
+
+// Chrome/Edge/Android: the browser tells us when the app is installable.
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!dismissed) installBox.hidden = false;
+});
+
+// iOS Safari has no install event, so explain the manual step instead.
+if (isIOS && !standalone && !dismissed) {
+  $('#install-hint').textContent = 'Tap the Share button, then “Add to Home Screen”.';
+  $('#install-go').hidden = true;
+  installBox.hidden = false;
+}
+
+$('#install-go').onclick = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBox.hidden = true;
+};
+$('#install-x').onclick = () => {
+  installBox.hidden = true;
+  try { localStorage.setItem('installDismissed', '1'); } catch {}
+};
+window.addEventListener('appinstalled', () => { installBox.hidden = true; });

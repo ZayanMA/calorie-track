@@ -8,7 +8,7 @@ Each day starts empty, and previous days stay browsable with the ‹ › arrows.
 - Zero dependencies: plain Node (>= 18) and one static page
 - Data lives in `data/db.json` (gitignored)
 - Foods you've logged before autocomplete and fill in their macros
-- Light/dark theme follows the device; installable as a home-screen app
+- Light/dark theme follows the device; prompts to install as a home-screen app
 
 ## Run locally
 

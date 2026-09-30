@@ -69,6 +69,26 @@ h1 { font-size: 22px; font-weight: 650; margin: 0 4px; letter-spacing: -0.01em; 
 .add-btn:active { transform: scale(0.94); }
 .add-btn svg { width: 22px; height: 22px; stroke-width: 2.4; }
 
+/* install banner */
+.install {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 12px 8px 12px 12px; margin: -8px 0 24px;
+}
+.install[hidden] { display: none; }
+.install img { border-radius: 10px; flex: none; }
+.install-text { flex: 1; display: grid; font-size: 13px; line-height: 1.35; }
+.install-text span { color: var(--muted); }
+.install-go {
+  border: 0; border-radius: 99px; padding: 7px 14px; font-weight: 600; font-size: 13px;
+  background: var(--accent); color: var(--on-accent);
+}
+.install-go[hidden] { display: none; }
+.install-x {
+  width: 32px; height: 32px; display: grid; place-items: center; flex: none;
+  border: 0; background: none; color: var(--muted); border-radius: 8px;
+}
+
 /* summary */
 .summary { margin-bottom: 28px; }
 .kcal { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
